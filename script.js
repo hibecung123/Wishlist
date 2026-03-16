@@ -1,7 +1,4 @@
-// --- STATE MANAGEMENT ---
-const fmt = (num) => new Intl.NumberFormat('vi-VN').format(num) + " ₫";
-
-let state = JSON.parse(localStorage.getItem('coupleData')) || {
+const state = JSON.parse(localStorage.getItem('couple_pro_data')) || {
     budget: 0,
     mealsLeft: 30,
     datesLeft: 4,
@@ -13,218 +10,152 @@ let state = JSON.parse(localStorage.getItem('coupleData')) || {
 let chart;
 
 function saveData() {
-    localStorage.setItem('coupleData', JSON.stringify(state));
+    localStorage.setItem('couple_pro_data', JSON.stringify(state));
     updateUI();
 }
 
-// --- NAVIGATION ---
 function showTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    if (tabId === 'dashboard') initChart();
-}
-
-// --- BUDGET & SPENDING ---
-function setBudget() {
-    const val = parseFloat(document.getElementById('set-total-budget').value);
-    if (val) {
-        state.budget = val;
-        saveData();
-        document.getElementById('set-total-budget').value = '';
-    }
-}
-
-function calculateAverages() {
-    state.mealsLeft = parseInt(document.getElementById('meals-left').value) || 1;
-    state.datesLeft = parseInt(document.getElementById('dates-left').value) || 1;
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     
-    document.getElementById('avg-meal-budget').innerText = fmt(state.budget / state.mealsLeft);
-    document.getElementById('avg-date-budget').innerText = fmt(state.budget / state.datesLeft);
+    document.getElementById(tabId).classList.add('active');
+    document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+    
+    if (tabId === 'dashboard') initChart();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function deductSpending(category, inputId, countId) {
-    const cost = parseFloat(document.getElementById(inputId).value);
-    if (cost) {
-        state.budget -= cost;
-        state.spending[category] += cost;
-        if (category === 'Eating') state.mealsLeft -= 1;
-        if (category === 'Going Out') state.datesLeft -= 1;
-
-        state.logs.unshift({
-            date: new Date().toLocaleString('vi-VN'),
-            desc: category === 'Eating' ? "Meal Expense" : "Date Night",
-            category,
-            amount: cost
-        });
+// --- LOGIC ---
+function deductQuick(cat) {
+    const amount = parseFloat(prompt(`Amount for ${cat}? (Current avg is used if empty)`));
+    const finalAmount = amount || (cat === 'Eating' ? (state.budget / state.mealsLeft) : (state.budget / state.datesLeft));
+    
+    if (finalAmount) {
+        state.budget -= finalAmount;
+        state.spending[cat] += finalAmount;
+        if (cat === 'Eating') state.mealsLeft--;
+        else state.datesLeft--;
         
-        document.getElementById(inputId).value = '';
-        saveData();
-    }
-}
-
-function addManualExpense() {
-    const amount = parseFloat(prompt("Enter shopping amount:"));
-    if (amount) {
-        state.budget -= amount;
-        state.spending.Shopping += amount;
-        state.logs.unshift({ 
-            date: new Date().toLocaleString('vi-VN'), 
-            desc: "Shopping", 
-            category: "Shopping", 
-            amount 
+        state.logs.unshift({
+            id: Date.now(),
+            date: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            category: cat,
+            amount: finalAmount,
+            title: cat === 'Eating' ? "Yummy Meal" : "Romantic Date"
         });
         saveData();
     }
 }
 
-// --- WISHLIST LOGIC ---
 async function addWish() {
     const item = document.getElementById('wish-item').value;
     const price = parseFloat(document.getElementById('wish-price').value);
-    const link = document.getElementById('wish-link').value;
     const owner = document.getElementById('wish-owner').value;
-    const priority = parseInt(document.getElementById('wish-priority').value) || 5;
+    const link = document.getElementById('wish-link').value;
 
     if (item && price) {
-        let previewImg = '', previewDesc = '';
+        let img = "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400&q=80"; // Default image
         if (link) {
             try {
-                const response = await fetch(`https://api.microlink.io?url=${encodeURIComponent(link)}`);
-                const data = await response.json();
-                if (data.status === 'success') {
-                    previewImg = data.data.image?.url || '';
-                    previewDesc = data.data.description || '';
-                }
-            } catch (e) { console.log("Link preview failed"); }
+                const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(link)}`);
+                const data = await res.json();
+                if (data.status === 'success') img = data.data.image.url;
+            } catch (e) { console.log("Preview unavailable"); }
         }
-        state.wishlist.push({ 
-            item, price, link, owner, priority, 
-            img: previewImg, desc: previewDesc, 
-            bought: false, id: Date.now() 
-        });
-        ['wish-item', 'wish-price', 'wish-link', 'wish-priority'].forEach(id => document.getElementById(id).value = '');
+
+        state.wishlist.push({ id: Date.now(), item, price, owner, img, bought: false });
+        document.getElementById('wish-item').value = '';
+        document.getElementById('wish-price').value = '';
         saveData();
     }
 }
 
 function deleteWish(id) {
-    if (confirm("Remove this item?")) {
-        state.wishlist = state.wishlist.filter(w => w.id !== id);
-        saveData();
-    }
-}
-
-function toggleWish(id) {
-    const wish = state.wishlist.find(w => w.id === id);
-    if (!wish.bought) {
-        if (confirm(`Buy ${wish.item} for ${fmt(wish.price)}?`)) {
-            state.budget -= wish.price;
-            state.spending.Shopping += wish.price;
-            wish.bought = true;
-            state.logs.unshift({ 
-                date: new Date().toLocaleString('vi-VN'), 
-                desc: `Bought: ${wish.item}`, 
-                category: "Shopping", 
-                amount: wish.price 
-            });
-        }
-    } else {
-        wish.bought = false;
-    }
+    state.wishlist = state.wishlist.filter(w => w.id !== id);
     saveData();
 }
 
-// --- UI RENDERING ---
-function renderWishItem(w) {
-    return `
-        <div class="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-md border border-slate-100 transition ${w.bought ? 'opacity-40 grayscale' : ''}">
-            ${w.img ? `<img src="${w.img}" class="w-full h-28 object-cover">` : ''}
-            <div class="p-4">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="text-[9px] bg-slate-900 text-white px-2 py-0.5 rounded-full font-black uppercase">Prio ${w.priority}</span>
-                    <div class="flex gap-3">
-                        <button onclick="deleteWish(${w.id})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button>
-                        <input type="checkbox" ${w.bought ? 'checked' : ''} onchange="toggleWish(${w.id})" class="w-5 h-5 accent-rose-500 rounded-full cursor-pointer">
-                    </div>
-                </div>
-                <h4 class="font-bold text-slate-800 text-xs mb-1">${w.item}</h4>
-                <div class="flex justify-between items-center mt-3">
-                    <span class="text-xs font-black text-rose-500">${fmt(w.price)}</span>
-                    ${w.link ? `<a href="${w.link}" target="_blank" class="text-[10px] font-bold text-blue-400">View ↗</a>` : ''}
+function updateUI() {
+    document.getElementById('display-budget').innerText = new Intl.NumberFormat('vi-VN').format(state.budget) + " ₫";
+    document.getElementById('avg-meal-budget').innerText = new Intl.NumberFormat('vi-VN').format(state.budget / (state.mealsLeft || 1)) + " ₫";
+    document.getElementById('avg-date-budget').innerText = new Intl.NumberFormat('vi-VN').format(state.budget / (state.datesLeft || 1)) + " ₫";
+    
+    document.getElementById('meals-left-label').innerText = `${state.mealsLeft} Left`;
+    document.getElementById('dates-left-label').innerText = `${state.datesLeft} Left`;
+
+    // Wishlist Rendering
+    const renderWish = (w) => `
+        <div class="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-100 p-2">
+            <img src="${w.img}" class="w-full h-32 object-cover rounded-[1.5rem] mb-3">
+            <div class="px-2 pb-2">
+                <h4 class="text-xs font-bold text-slate-800 truncate">${w.item}</h4>
+                <p class="text-[10px] text-rose-500 font-black mb-2">${new Intl.NumberFormat('vi-VN').format(w.price)} ₫</p>
+                <div class="flex justify-between">
+                    <button onclick="deleteWish(${w.id})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    <button class="bg-slate-100 text-[9px] px-3 py-1 rounded-full font-bold">Buy</button>
                 </div>
             </div>
         </div>
     `;
-}
 
-function updateUI() {
-    document.getElementById('display-budget').innerText = fmt(state.budget);
-    document.getElementById('meals-left').value = state.mealsLeft;
-    document.getElementById('dates-left').value = state.datesLeft;
-    calculateAverages();
+    document.getElementById('wishlist-son').innerHTML = state.wishlist.filter(w => w.owner === 'Sơn').map(renderWish).join('');
+    document.getElementById('wishlist-phuong').innerHTML = state.wishlist.filter(w => w.owner === 'Phương').map(renderWish).join('');
 
-    const sorted = [...state.wishlist].sort((a, b) => a.priority - b.priority);
-    document.getElementById('wishlist-son').innerHTML = sorted.filter(w => w.owner === 'Sơn').map(renderWishItem).join('');
-    document.getElementById('wishlist-phuong').innerHTML = sorted.filter(w => w.owner === 'Phương').map(renderWishItem).join('');
-
+    // History Rendering
     document.getElementById('log-list').innerHTML = state.logs.map(l => `
-        <div class="flex justify-between items-center bg-white/50 p-4 rounded-2xl mb-2 border border-white">
-            <div>
-                <p class="text-sm font-bold text-slate-700">${l.desc}</p>
-                <p class="text-[9px] text-slate-400 uppercase font-black">${l.date} • ${l.category}</p>
+        <div class="glass p-4 rounded-2xl flex justify-between items-center border border-white">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center ${l.category === 'Eating' ? 'bg-orange-100 text-orange-600' : 'bg-teal-100 text-teal-600'}">
+                    <i class="fa-solid ${l.category === 'Eating' ? 'fa-bowl-food' : 'fa-star'}"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-slate-800">${l.title}</p>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase">${l.date}</p>
+                </div>
             </div>
-            <span class="font-black text-rose-500">-${fmt(l.amount)}</span>
+            <p class="font-black text-slate-800">-${new Intl.NumberFormat('vi-VN').format(l.amount)} ₫</p>
         </div>
     `).join('');
-    updateChart();
+
+    if (chart) updateChart();
 }
 
-// --- CHARTS & ANIMATIONS ---
 function initChart() {
     const ctx = document.getElementById('spendingChart').getContext('2d');
     if (chart) chart.destroy();
     chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Eating', 'Shopping', 'Going Out'],
+            labels: ['Eating', 'Dates', 'Shopping'],
             datasets: [{
-                data: [state.spending.Eating, state.spending.Shopping, state.spending['Going Out']],
-                backgroundColor: ['#f97316', '#3b82f6', '#06b6d4'],
-                borderWidth: 0,
+                data: [state.spending.Eating, state.spending['Going Out'], state.spending.Shopping],
+                backgroundColor: ['#f97316', '#14b8a6', '#f43f5e'],
+                borderWidth: 8,
+                borderColor: '#ffffff'
             }]
         },
-        options: { 
-            maintainAspectRatio: false, 
-            cutout: '80%', 
-            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Quicksand', weight: 'bold', size: 10 } } } } 
+        options: {
+            cutout: '80%',
+            plugins: { legend: { display: false } },
+            maintainAspectRatio: false
         }
     });
 }
 
 function updateChart() {
-    if (chart) {
-        chart.data.datasets[0].data = [state.spending.Eating, state.spending.Shopping, state.spending['Going Out']];
-        chart.update();
-    }
+    chart.data.datasets[0].data = [state.spending.Eating, state.spending['Going Out'], state.spending.Shopping];
+    chart.update();
 }
 
-function clearHistory() {
-    if (confirm("Reset everything for the new month?")) {
-        state.logs = [];
-        state.spending = { Eating: 0, Shopping: 0, "Going Out": 0 };
-        saveData();
-    }
+function spawnHeart() {
+    const h = document.createElement('div');
+    h.className = 'heart fa-solid fa-heart';
+    h.style.left = Math.random() * 100 + 'vw';
+    h.style.color = `rgba(244, 63, 94, ${Math.random() * 0.4})`;
+    h.style.fontSize = Math.random() * 20 + 10 + 'px';
+    document.getElementById('heart-container').appendChild(h);
+    setTimeout(() => h.remove(), 8000);
 }
 
-function createHeart() {
-    const heart = document.createElement('div');
-    heart.classList.add('heart');
-    heart.innerHTML = '<i class="fa-solid fa-heart"></i>';
-    heart.style.left = Math.random() * 100 + 'vw';
-    heart.style.animationDuration = Math.random() * 5 + 5 + 's';
-    document.getElementById('heart-container').appendChild(heart);
-    setTimeout(() => heart.remove(), 10000);
-}
-
-setInterval(createHeart, 2000);
+setInterval(spawnHeart, 2000);
 window.onload = () => { updateUI(); initChart(); };
