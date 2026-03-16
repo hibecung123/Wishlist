@@ -9,120 +9,118 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-slate-50 min-h-screen pb-24">
+<body class="bg-slate-50 min-h-screen pb-32">
 
     <div id="heart-container"></div>
-    <div class="fixed inset-0 bg-gradient-to-tr from-rose-100/30 via-transparent to-teal-100/30 -z-10"></div>
 
-    <header class="pt-12 pb-6 px-6 max-w-2xl mx-auto">
-        <div class="flex justify-between items-end">
-            <div>
-                <p class="text-xs font-black tracking-[0.3em] text-rose-400 uppercase">Together Since 2024</p>
-                <h1 class="text-3xl font-black text-slate-800">Sơn & Phương</h1>
-            </div>
-            <div class="bg-white/80 backdrop-blur-md p-3 rounded-2xl shadow-sm border border-white">
-                <i class="fa-solid fa-cloud-sun text-orange-400 text-xl"></i>
+    <div id="setup-overlay" class="fixed inset-0 bg-slate-900 z-[300] hidden flex items-center justify-center p-6">
+        <div class="w-full max-w-sm space-y-8 text-center">
+            <h1 class="text-4xl font-black text-white">Monthly Setup 🌸</h1>
+            <div class="glass p-8 rounded-[3rem] space-y-6">
+                <div class="text-left">
+                    <label class="text-[10px] font-black text-rose-400 uppercase ml-2">Total Budget (k)</label>
+                    <input type="number" id="setup-budget" placeholder="e.g. 5000" class="premium-input mt-1 font-black">
+                </div>
+                <button onclick="finishSetup()" class="w-full bg-white text-slate-900 py-5 rounded-3xl font-black shadow-xl">Start Month</button>
             </div>
         </div>
+    </div>
+
+    <header class="pt-16 pb-6 px-6 max-w-2xl mx-auto flex justify-between items-end">
+        <div>
+            <p class="text-[10px] font-black tracking-[0.3em] text-rose-400 uppercase">Couple Hub</p>
+            <h1 class="text-3xl font-black text-slate-800">Sơn & Phương</h1>
+        </div>
+        <button onclick="showTab('settings')" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100"><i class="fa-solid fa-sliders text-slate-400"></i></button>
     </header>
 
     <main class="max-w-2xl mx-auto px-4 space-y-6">
         
         <section id="dashboard" class="tab-content active space-y-6">
-            <div class="premium-card bg-slate-900 p-8 rounded-[2.5rem] text-white relative overflow-hidden shadow-2xl">
-                <div class="relative z-10">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Available Funds</p>
-                    <h2 class="text-4xl font-black mb-6" id="display-budget">0 ₫</h2>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white/10 p-4 rounded-2xl">
-                            <p class="text-[9px] text-slate-400 uppercase font-bold">Meal Avg</p>
-                            <p class="text-lg font-bold text-rose-300" id="avg-meal-budget">0 ₫</p>
-                        </div>
-                        <div class="bg-white/10 p-4 rounded-2xl">
-                            <p class="text-[9px] text-slate-400 uppercase font-bold">Date Avg</p>
-                            <p class="text-lg font-bold text-teal-300" id="avg-date-budget">0 ₫</p>
-                        </div>
-                    </div>
+            <div class="premium-card bg-slate-900 p-8 rounded-[2.5rem] text-white relative shadow-2xl">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Available Funds (k)</p>
+                <h2 class="text-4xl font-black mb-4" id="display-budget">0k</h2>
+                <div class="w-full h-1.5 bg-white/10 rounded-full mb-6 overflow-hidden">
+                    <div id="health-bar-fill" class="h-full bg-teal-400 transition-all duration-700"></div>
                 </div>
-                <div class="absolute -right-10 -bottom-10 text-9xl text-white/5 rotate-12">
-                    <i class="fa-solid fa-heart"></i>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white/10 p-4 rounded-2xl border border-white/5">
+                        <p class="text-[9px] text-slate-400 uppercase font-bold">Total Spent</p>
+                        <p class="text-lg font-bold text-rose-300" id="total-spent">0k</p>
+                    </div>
+                    <div class="bg-white/10 p-4 rounded-2xl border border-white/5">
+                        <p class="text-[9px] text-slate-400 uppercase font-bold">Days Left</p>
+                        <p class="text-lg font-bold text-teal-300" id="days-left-count">--</p>
+                    </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="deductQuick('Eating')" class="action-card bg-orange-50 p-6 rounded-[2rem] text-left border border-orange-100">
-                    <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white mb-4 shadow-lg shadow-orange-200">
-                        <i class="fa-solid fa-utensils"></i>
-                    </div>
+                <button onclick="openLogModal('Eating')" class="action-card bg-white p-6 rounded-[2rem] text-left border border-slate-100 shadow-sm">
+                    <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white mb-4"><i class="fa-solid fa-utensils"></i></div>
                     <p class="font-bold text-slate-800">Log Meal</p>
-                    <p class="text-[10px] text-orange-600 font-bold uppercase" id="meals-left-label">30 Left</p>
                 </button>
-                <button onclick="deductQuick('Going Out')" class="action-card bg-teal-50 p-6 rounded-[2rem] text-left border border-teal-100">
-                    <div class="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white mb-4 shadow-lg shadow-teal-200">
-                        <i class="fa-solid fa-champagne-glasses"></i>
-                    </div>
+                <button onclick="openLogModal('Going Out')" class="action-card bg-white p-6 rounded-[2rem] text-left border border-slate-100 shadow-sm">
+                    <div class="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white mb-4"><i class="fa-solid fa-champagne-glasses"></i></div>
                     <p class="font-bold text-slate-800">Date Night</p>
-                    <p class="text-[10px] text-teal-600 font-bold uppercase" id="dates-left-label">4 Left</p>
                 </button>
             </div>
-
-            <div class="glass p-6 rounded-[2.5rem]">
-                <div class="flex justify-between items-center mb-4 px-2">
-                    <h3 class="text-sm font-bold text-slate-700 uppercase tracking-widest">Monthly Pulse</h3>
-                    <button onclick="setBudget()" class="text-xs text-rose-500 font-bold">+ Reset</button>
-                </div>
-                <div class="h-64"><canvas id="spendingChart"></canvas></div>
-            </div>
+            
+            <div class="glass p-6 rounded-[2.5rem] h-64"><canvas id="spendingChart"></canvas></div>
         </section>
 
         <section id="wishlist" class="tab-content space-y-6">
-            <div class="glass p-6 rounded-[2rem] mb-6">
-                <h3 class="text-sm font-black uppercase text-slate-400 mb-4 tracking-tighter">Add New Desire</h3>
-                <div class="grid grid-cols-1 gap-3">
-                    <input type="text" id="wish-item" placeholder="What do we want?" class="premium-input">
+            <div class="glass p-6 rounded-[2.5rem]">
+                <h3 class="text-xs font-black uppercase text-slate-400 mb-4 tracking-widest">Add Desire</h3>
+                <div class="space-y-3">
+                    <input type="text" id="wish-item" placeholder="Product Name" class="premium-input">
                     <div class="grid grid-cols-2 gap-3">
-                        <input type="number" id="wish-price" placeholder="Price (VND)" class="premium-input">
-                        <select id="wish-owner" class="premium-input font-bold text-rose-500">
-                            <option value="Sơn">For Sơn</option>
-                            <option value="Phương">For Phương</option>
+                        <select id="wish-price" class="premium-input font-bold"></select>
+                        <select id="wish-priority" class="premium-input font-bold text-amber-500">
+                            <option value="1">Priority 1</option><option value="2">Priority 2</option>
+                            <option value="3">Priority 3</option><option value="4">Priority 4</option><option value="5">Priority 5</option>
                         </select>
                     </div>
-                    <input type="url" id="wish-link" placeholder="Product Link (Auto-Image)" class="premium-input">
-                    <button onclick="addWish()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-xl active:scale-95 transition-all">Add to Wishlist</button>
+                    <input type="url" id="wish-link" placeholder="Paste Shopee/Lazada Link..." class="premium-input">
+                    <select id="wish-owner" class="premium-input font-bold text-rose-500">
+                        <option value="Sơn">For Sơn</option><option value="Phương">For Phương</option>
+                    </select>
+                    <button onclick="addWish()" id="add-wish-btn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold">Save Wish</button>
                 </div>
             </div>
-
-            <div class="space-y-8">
-                <div>
-                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest ml-4 mb-4">👸 Phương's Wishlist</h3>
-                    <div id="wishlist-phuong" class="grid grid-cols-2 gap-4"></div>
-                </div>
-                <div>
-                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest ml-4 mb-4">🤵‍♂️ Sơn's Wishlist</h3>
-                    <div id="wishlist-son" class="grid grid-cols-2 gap-4"></div>
-                </div>
-            </div>
+            <div id="wishlist-phuong" class="space-y-4"></div>
+            <div id="wishlist-son" class="space-y-4"></div>
         </section>
 
         <section id="history" class="tab-content space-y-4">
-            <h2 class="text-xl font-black text-slate-800 ml-2">Recent Story</h2>
+            <h2 class="text-xl font-black text-slate-800 px-2">Recent Logs</h2>
             <div id="log-list" class="space-y-3"></div>
         </section>
 
+        <section id="settings" class="tab-content space-y-6">
+            <div class="glass p-8 rounded-[2.5rem] space-y-4 text-center">
+                <button onclick="document.getElementById('setup-overlay').classList.remove('hidden')" class="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold">Reset Monthly Budget</button>
+                <button onclick="resetApp()" class="w-full py-4 rounded-2xl bg-rose-50 text-rose-500 font-bold">Wipe App Data</button>
+            </div>
+        </section>
     </main>
 
-    <nav class="fixed bottom-6 left-6 right-6 z-[100]">
+    <div id="log-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl">
+            <h3 id="modal-title" class="text-xl font-black text-slate-800 text-center">Log Expense</h3>
+            <select id="modal-amount" class="premium-input font-black text-lg text-rose-500"></select>
+            <div class="flex gap-3">
+                <button onclick="closeLogModal()" class="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-500">Cancel</button>
+                <button id="modal-confirm" class="flex-2 py-4 bg-slate-900 text-white rounded-2xl px-8 font-bold">Log</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-8 left-6 right-6 z-[100]">
         <div class="max-w-md mx-auto glass rounded-[2.5rem] shadow-2xl p-2 flex justify-around items-center border border-white/50">
-            <button onclick="showTab('dashboard')" class="nav-btn active" data-tab="dashboard">
-                <i class="fa-solid fa-house-chimney-window"></i>
-            </button>
-            <button onclick="showTab('wishlist')" class="nav-btn" data-tab="wishlist">
-                <i class="fa-solid fa-gift"></i>
-            </button>
-            <button onclick="showTab('history')" class="nav-btn" data-tab="history">
-                <i class="fa-solid fa-list-ul"></i>
-            </button>
+            <button onclick="showTab('dashboard')" class="nav-btn active" data-tab="dashboard"><i class="fa-solid fa-wallet"></i></button>
+            <button onclick="showTab('wishlist')" class="nav-btn" data-tab="wishlist"><i class="fa-solid fa-gift"></i></button>
+            <button onclick="showTab('history')" class="nav-btn" data-tab="history"><i class="fa-solid fa-receipt"></i></button>
         </div>
     </nav>
 
