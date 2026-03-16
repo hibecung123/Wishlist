@@ -9,118 +9,147 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-slate-50 min-h-screen pb-32">
-
+<body class="pb-32">
     <div id="heart-container"></div>
 
-    <div id="setup-overlay" class="fixed inset-0 bg-slate-900 z-[300] hidden flex items-center justify-center p-6">
-        <div class="w-full max-w-sm space-y-8 text-center">
-            <h1 class="text-4xl font-black text-white">Monthly Setup 🌸</h1>
-            <div class="glass p-8 rounded-[3rem] space-y-6">
-                <div class="text-left">
-                    <label class="text-[10px] font-black text-rose-400 uppercase ml-2">Total Budget (k)</label>
-                    <input type="number" id="setup-budget" placeholder="e.g. 5000" class="premium-input mt-1 font-black">
-                </div>
-                <button onclick="finishSetup()" class="w-full bg-white text-slate-900 py-5 rounded-3xl font-black shadow-xl">Start Month</button>
+    <div id="setup-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-lg z-[300] hidden flex items-center justify-center p-6">
+        <div class="w-full max-w-sm bg-white p-8 rounded-[3rem] text-center space-y-6 shadow-2xl">
+            <div class="w-20 h-20 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center mx-auto text-3xl animate-bounce">
+                <i class="fa-solid fa-calendar-check"></i>
             </div>
+            <h2 class="text-2xl font-black text-slate-800">New Month! 🌸</h2>
+            <p class="text-slate-500 text-sm">Set your budget for <span id="current-month-name" class="font-bold text-pink-500"></span></p>
+            <input type="number" id="setup-budget" placeholder="Budget (k)" class="premium-input text-center text-xl">
+            <button onclick="finishSetup()" class="w-full bg-gradient-to-r from-pink-400 to-blue-400 text-white py-5 rounded-3xl font-black shadow-lg active:scale-95 transition-all">Start Journey</button>
         </div>
     </div>
 
-    <header class="pt-16 pb-6 px-6 max-w-2xl mx-auto flex justify-between items-end">
+    <header class="pt-12 pb-6 px-6 max-w-2xl mx-auto flex justify-between items-center">
         <div>
-            <p class="text-[10px] font-black tracking-[0.3em] text-rose-400 uppercase">Couple Hub</p>
-            <h1 class="text-3xl font-black text-slate-800">Sơn & Phương</h1>
+            <h1 class="text-3xl font-black text-slate-800 flex items-center gap-2">
+                <span class="text-blue-400">Sơn</span> 
+                <i class="fa-solid fa-heart text-pink-400 animate-pulse text-xl"></i> 
+                <span class="text-pink-400">Phương</span>
+            </h1>
+            <p id="days-count-top" class="text-[11px] font-bold text-slate-400 tracking-wide mt-1"></p>
         </div>
-        <button onclick="showTab('settings')" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100"><i class="fa-solid fa-sliders text-slate-400"></i></button>
+        <button onclick="showTab('settings')" class="w-10 h-10 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center">
+            <i class="fa-solid fa-sparkles text-pink-300"></i>
+        </button>
     </header>
 
     <main class="max-w-2xl mx-auto px-4 space-y-6">
         
         <section id="dashboard" class="tab-content active space-y-6">
-            <div class="premium-card bg-slate-900 p-8 rounded-[2.5rem] text-white relative shadow-2xl">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Available Funds (k)</p>
-                <h2 class="text-4xl font-black mb-4" id="display-budget">0k</h2>
-                <div class="w-full h-1.5 bg-white/10 rounded-full mb-6 overflow-hidden">
-                    <div id="health-bar-fill" class="h-full bg-teal-400 transition-all duration-700"></div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white/10 p-4 rounded-2xl border border-white/5">
-                        <p class="text-[9px] text-slate-400 uppercase font-bold">Total Spent</p>
-                        <p class="text-lg font-bold text-rose-300" id="total-spent">0k</p>
+            <div class="premium-card bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[2.5rem] text-white relative shadow-2xl overflow-hidden">
+                <div class="relative z-10">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Monthly Balance</p>
+                    <h2 class="text-4xl font-black mb-4" id="display-budget">0k</h2>
+                    <div class="w-full h-2 bg-white/10 rounded-full mb-6 overflow-hidden">
+                        <div id="health-bar-fill" class="h-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all duration-1000"></div>
                     </div>
-                    <div class="bg-white/10 p-4 rounded-2xl border border-white/5">
-                        <p class="text-[9px] text-slate-400 uppercase font-bold">Days Left</p>
-                        <p class="text-lg font-bold text-teal-300" id="days-left-count">--</p>
+                    <div class="grid grid-cols-2 gap-4 text-xs font-bold">
+                        <div class="bg-white/5 p-3 rounded-2xl border border-white/5">
+                            <p class="text-blue-300 mb-1">Spent</p>
+                            <p id="total-spent" class="text-lg">0k</p>
+                        </div>
+                        <div class="bg-white/5 p-3 rounded-2xl border border-white/5">
+                            <p class="text-pink-300 mb-1">Remain</p>
+                            <p id="days-left-count" class="text-lg">-- days</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="openLogModal('Eating')" class="action-card bg-white p-6 rounded-[2rem] text-left border border-slate-100 shadow-sm">
-                    <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white mb-4"><i class="fa-solid fa-utensils"></i></div>
-                    <p class="font-bold text-slate-800">Log Meal</p>
+                <button onclick="openLogModal('Eating')" class="action-card bg-white p-6 rounded-[2rem] border-b-4 border-orange-100 shadow-sm text-left">
+                    <div class="w-12 h-12 bg-orange-50 text-orange-400 rounded-2xl flex items-center justify-center mb-4 text-xl"><i class="fa-solid fa-utensils"></i></div>
+                    <p class="font-black text-slate-800">Eating</p>
+                    <p class="text-[10px] text-slate-400">Yummy dates</p>
                 </button>
-                <button onclick="openLogModal('Going Out')" class="action-card bg-white p-6 rounded-[2rem] text-left border border-slate-100 shadow-sm">
-                    <div class="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white mb-4"><i class="fa-solid fa-champagne-glasses"></i></div>
-                    <p class="font-bold text-slate-800">Date Night</p>
+                <button onclick="openLogModal('Going Out')" class="action-card bg-white p-6 rounded-[2rem] border-b-4 border-blue-100 shadow-sm text-left">
+                    <div class="w-12 h-12 bg-blue-50 text-blue-400 rounded-2xl flex items-center justify-center mb-4 text-xl"><i class="fa-solid fa-video"></i></div>
+                    <p class="font-black text-slate-800">Going Out</p>
+                    <p class="text-[10px] text-slate-400">Movies & fun</p>
                 </button>
             </div>
             
-            <div class="glass p-6 rounded-[2.5rem] h-64"><canvas id="spendingChart"></canvas></div>
+            <div class="glass p-6 h-64"><canvas id="spendingChart"></canvas></div>
         </section>
 
         <section id="wishlist" class="tab-content space-y-6">
-            <div class="glass p-6 rounded-[2.5rem]">
-                <h3 class="text-xs font-black uppercase text-slate-400 mb-4 tracking-widest">Add Desire</h3>
+            <div class="glass p-6">
+                <h3 class="text-xs font-black uppercase text-pink-400 mb-4 tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-magic-wand-sparkles"></i> Make a Wish
+                </h3>
                 <div class="space-y-3">
-                    <input type="text" id="wish-item" placeholder="Product Name" class="premium-input">
+                    <input type="text" id="wish-item" placeholder="Product name..." class="premium-input">
                     <div class="grid grid-cols-2 gap-3">
                         <select id="wish-price" class="premium-input font-bold"></select>
-                        <select id="wish-priority" class="premium-input font-bold text-amber-500">
-                            <option value="1">Priority 1</option><option value="2">Priority 2</option>
-                            <option value="3">Priority 3</option><option value="4">Priority 4</option><option value="5">Priority 5</option>
+                        <select id="wish-priority" class="premium-input font-bold text-blue-500">
+                            <option value="1">Priority 1 (High)</option>
+                            <option value="2">Priority 2 (Mid)</option>
+                            <option value="3">Priority 3 (Low)</option>
                         </select>
                     </div>
-                    <input type="url" id="wish-link" placeholder="Paste Shopee/Lazada Link..." class="premium-input">
-                    <select id="wish-owner" class="premium-input font-bold text-rose-500">
-                        <option value="Sơn">For Sơn</option><option value="Phương">For Phương</option>
+                    <input type="url" id="wish-link" placeholder="Paste Shopee/Lazada Link" class="premium-input">
+                    <select id="wish-owner" class="premium-input font-bold text-pink-500">
+                        <option value="Phương">For Phương 👸</option>
+                        <option value="Sơn">For Sơn 🤵‍♂️</option>
                     </select>
-                    <button onclick="addWish()" id="add-wish-btn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold">Save Wish</button>
+                    <button onclick="addWish()" id="add-wish-btn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg">Add to List</button>
                 </div>
             </div>
-            <div id="wishlist-phuong" class="space-y-4"></div>
-            <div id="wishlist-son" class="space-y-4"></div>
+            
+            <div id="active-wishes" class="space-y-8">
+                <div id="wishlist-phuong"></div>
+                <div id="wishlist-son"></div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-8">
+                <h3 class="text-xs font-black uppercase text-slate-400 mb-4 px-4 tracking-widest">Archive of Happiness 🎁</h3>
+                <div id="wishlist-bought" class="grid grid-cols-2 gap-3 opacity-80"></div>
+            </div>
         </section>
 
         <section id="history" class="tab-content space-y-4">
-            <h2 class="text-xl font-black text-slate-800 px-2">Recent Logs</h2>
-            <div id="log-list" class="space-y-3"></div>
+            <div id="monthly-history-container" class="space-y-6"></div>
         </section>
 
         <section id="settings" class="tab-content space-y-6">
-            <div class="glass p-8 rounded-[2.5rem] space-y-4 text-center">
-                <button onclick="document.getElementById('setup-overlay').classList.remove('hidden')" class="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold">Reset Monthly Budget</button>
-                <button onclick="resetApp()" class="w-full py-4 rounded-2xl bg-rose-50 text-rose-500 font-bold">Wipe App Data</button>
+            <div class="glass p-8 text-center space-y-4">
+                <div class="w-16 h-16 bg-pink-50 text-pink-400 rounded-full flex items-center justify-center mx-auto mb-2"><i class="fa-solid fa-heart-circle-check text-2xl"></i></div>
+                <h3 class="font-black text-slate-800">App Settings</h3>
+                <p class="text-xs text-slate-400 px-4">Manage your couple profile and app data.</p>
+                <button onclick="resetApp()" class="w-full py-4 rounded-2xl bg-rose-50 text-rose-500 font-bold">Wipe All Data</button>
             </div>
         </section>
+
+        <footer class="pb-12 text-center">
+            <div class="inline-flex items-center gap-2 px-6 py-2 bg-white rounded-full border border-pink-100 shadow-sm">
+                <span class="text-[10px] font-black text-slate-400 uppercase">Since 17.05.2022</span>
+                <span class="w-1 h-1 bg-pink-200 rounded-full"></span>
+                <span id="days-together-footer" class="text-[11px] font-black text-pink-500 tracking-tighter"></span>
+            </div>
+        </footer>
     </main>
 
     <div id="log-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl">
-            <h3 id="modal-title" class="text-xl font-black text-slate-800 text-center">Log Expense</h3>
-            <select id="modal-amount" class="premium-input font-black text-lg text-rose-500"></select>
+            <h3 id="modal-title" class="text-xl font-black text-center text-slate-800">Add Spending</h3>
+            <select id="modal-amount" class="premium-input font-black text-lg text-blue-500"></select>
             <div class="flex gap-3">
-                <button onclick="closeLogModal()" class="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-500">Cancel</button>
-                <button id="modal-confirm" class="flex-2 py-4 bg-slate-900 text-white rounded-2xl px-8 font-bold">Log</button>
+                <button onclick="closeLogModal()" class="flex-1 py-4 bg-slate-50 rounded-2xl font-bold text-slate-400">Cancel</button>
+                <button id="modal-confirm" class="flex-2 py-4 bg-slate-900 text-white rounded-2xl font-bold px-4">Confirm</button>
             </div>
         </div>
     </div>
 
     <nav class="fixed bottom-8 left-6 right-6 z-[100]">
-        <div class="max-w-md mx-auto glass rounded-[2.5rem] shadow-2xl p-2 flex justify-around items-center border border-white/50">
-            <button onclick="showTab('dashboard')" class="nav-btn active" data-tab="dashboard"><i class="fa-solid fa-wallet"></i></button>
-            <button onclick="showTab('wishlist')" class="nav-btn" data-tab="wishlist"><i class="fa-solid fa-gift"></i></button>
-            <button onclick="showTab('history')" class="nav-btn" data-tab="history"><i class="fa-solid fa-receipt"></i></button>
+        <div class="max-w-md mx-auto glass rounded-[2.5rem] shadow-2xl p-2 flex justify-around items-center border border-white">
+            <button onclick="showTab('dashboard')" class="nav-btn active" data-tab="dashboard"><i class="fa-solid fa-house-heart"></i></button>
+            <button onclick="showTab('wishlist')" class="nav-btn" data-tab="wishlist"><i class="fa-solid fa-wand-sparkles"></i></button>
+            <button onclick="showTab('history')" class="nav-btn" data-tab="history"><i class="fa-solid fa-clock-rotate-left"></i></button>
         </div>
     </nav>
 

@@ -1,22 +1,75 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
-:root { --primary: #f43f5e; --bg-glass: rgba(255, 255, 255, 0.85); }
-body { font-family: 'Plus Jakarta Sans', sans-serif; padding-bottom: 40px; background: #f8fafc; }
+:root { 
+    --pink: #f472b6; 
+    --blue: #60a5fa; 
+    --dark: #1e293b; 
+    --glass: rgba(255, 255, 255, 0.8); 
+}
+
+body { 
+    font-family: 'Plus Jakarta Sans', sans-serif; 
+    background: linear-gradient(135deg, #fff5f7 0%, #f0f7ff 100%); 
+    color: var(--dark); 
+    min-height: 100vh;
+}
 
 .tab-content { display: none; }
-.tab-content.active { display: block; animation: slideUp 0.3s ease-out; }
-@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.tab-content.active { display: block; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 
-.nav-btn { width: 55px; height: 55px; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: #94a3b8; transition: 0.3s; }
-.nav-btn.active { background: var(--primary); color: white; box-shadow: 0 10px 20px -5px rgba(244, 63, 94, 0.4); transform: translateY(-8px); }
+@keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-.glass { background: var(--bg-glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.6); }
-.premium-input { width: 100%; padding: 1.1rem; border-radius: 1.25rem; border: 1.5px solid #f1f5f9; background: white; font-size: 0.9rem; outline: none; appearance: none; }
+.nav-btn { 
+    width: 54px; height: 54px; border-radius: 20px; 
+    display: flex; align-items: center; justify-content: center; 
+    color: #cbd5e1; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    font-size: 1.2rem;
+}
 
-.priority-1 { border: 2px solid #fbbf24 !important; }
+.nav-btn.active { 
+    background: var(--dark); color: white; 
+    transform: translateY(-8px); 
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15); 
+}
 
-.purchase-btn { background: #10b981; color: white; border-radius: 12px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
-.delete-btn { background: #f43f5e; color: white; border-radius: 12px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+.glass { 
+    background: var(--glass); 
+    backdrop-filter: blur(20px); 
+    border: 1px solid rgba(255, 255, 255, 0.8); 
+    border-radius: 2.5rem; 
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.03);
+}
 
-.heart { position: fixed; pointer-events: none; z-index: -1; animation: floatHeart 8s linear forwards; }
-@keyframes floatHeart { 0% { transform: translateY(105vh) scale(0); opacity: 0; } 100% { transform: translateY(-10vh) scale(1.5); opacity: 0; } }
+.premium-input { 
+    width: 100%; padding: 1.1rem; border-radius: 1.25rem; 
+    border: 1.5px solid #f1f5f9; background: white; 
+    font-size: 0.9rem; outline: none; font-weight: 700; 
+    transition: 0.2s;
+}
+
+.premium-input:focus { border-color: var(--pink); box-shadow: 0 0 0 4px rgba(244, 114, 182, 0.1); }
+
+.action-card { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.action-card:active { transform: scale(0.92); }
+
+.wish-card {
+    background: white; border-radius: 2rem; padding: 1.25rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+    border: 1px solid #f1f5f9;
+}
+
+.priority-badge {
+    font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 20px;
+    text-transform: uppercase; margin-bottom: 4px; display: inline-block;
+}
+
+.priority-1-badge { background: #fef3c7; color: #d97706; border: 1px solid #fbbf24; }
+.priority-1-card { border: 2px solid #fbbf24 !important; background: #fffdf5; }
+
+.purchase-btn { background: #10b981; color: white; border-radius: 14px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+.delete-btn { background: #fef2f2; color: #ef4444; border-radius: 14px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+.purchase-btn:active, .delete-btn:active { transform: scale(0.85); }
+
+#heart-container { position: fixed; inset: 0; pointer-events: none; z-index: -1; }
+.heart { position: absolute; bottom: -50px; color: rgba(244, 114, 182, 0.2); animation: float 10s linear infinite; }
+@keyframes float { to { transform: translateY(-110vh) rotate(360deg); opacity: 0; } }
