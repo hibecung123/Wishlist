@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sơn ❤️ Phương Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="pb-32">
+    <div id="heart-container"></div>
+
+    <div id="setup-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-lg z-[300] hidden flex items-center justify-center p-6">
+        <div class="w-full max-w-sm bg-white p-8 rounded-[3rem] text-center space-y-6 shadow-2xl border-4 border-pink-100">
+            <h2 class="text-2xl font-black text-slate-800">New Month! 🌸</h2>
+            <p class="text-slate-500 text-sm">Set budget for <span id="current-month-name" class="font-bold text-pink-500"></span></p>
+            <input type="number" id="setup-budget" placeholder="Budget (k)" class="premium-input text-center text-xl">
+            <button onclick="finishSetup()" class="w-full bg-gradient-to-r from-pink-400 to-blue-400 text-white py-5 rounded-3xl font-black shadow-lg">Start Journey</button>
+        </div>
+    </div>
+
+    <header class="pt-12 pb-6 px-6 max-w-2xl mx-auto flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-black text-slate-800">
+                <span class="text-blue-400">Sơn</span> <i class="fa-solid fa-heart text-pink-400 animate-pulse"></i> <span class="text-pink-400">Phương</span>
+            </h1>
+            <p id="days-count-top" class="text-[11px] font-bold text-slate-400 tracking-wide mt-1 uppercase"></p>
+        </div>
+        <button onclick="showTab('settings')" class="w-10 h-10 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-pink-300">
+            <i class="fa-solid fa-sparkles"></i>
+        </button>
+    </header>
+
+    <main class="max-w-2xl mx-auto px-4 space-y-6">
+        
+        <section id="dashboard" class="tab-content active space-y-6">
+            <div class="premium-card bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Monthly Balance</p>
+                <h2 class="text-4xl font-black mb-4" id="display-budget">0k</h2>
+                <div class="w-full h-2 bg-white/10 rounded-full mb-6 overflow-hidden">
+                    <div id="health-bar-fill" class="h-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all duration-1000"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-xs font-bold text-center">
+                    <div class="bg-white/5 p-3 rounded-2xl border border-white/5">
+                        <p class="text-blue-300 mb-1">Spent</p>
+                        <p id="total-spent" class="text-lg">0k</p>
+                    </div>
+                    <div class="bg-white/5 p-3 rounded-2xl border border-white/5">
+                        <p class="text-pink-300 mb-1">Remain</p>
+                        <p id="days-left-count" class="text-lg">-- days</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="openLogModal('Eating')" class="action-card bg-white p-6 rounded-[2rem] border-b-4 border-orange-100 shadow-sm text-left">
+                    <div class="w-10 h-10 bg-orange-50 text-orange-400 rounded-xl flex items-center justify-center mb-3"><i class="fa-solid fa-utensils"></i></div>
+                    <p class="font-black text-slate-800">Eating</p>
+                </button>
+                <button onclick="openLogModal('Going Out')" class="action-card bg-white p-6 rounded-[2rem] border-b-4 border-blue-100 shadow-sm text-left">
+                    <div class="w-10 h-10 bg-blue-50 text-blue-400 rounded-xl flex items-center justify-center mb-3"><i class="fa-solid fa-video"></i></div>
+                    <p class="font-black text-slate-800">Date</p>
+                </button>
+            </div>
+            
+            <div class="glass p-6 h-64"><canvas id="spendingChart"></canvas></div>
+        </section>
+
+        <section id="wishlist" class="tab-content space-y-6">
+            <div class="glass p-6">
+                <h3 class="text-xs font-black uppercase text-pink-400 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-magic-wand-sparkles"></i> Add a Wish
+                </h3>
+                <div class="space-y-3">
+                    <input type="text" id="wish-item" placeholder="Product name..." class="premium-input">
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="wish-price" class="premium-input font-bold"></select>
+                        <select id="wish-priority" class="premium-input font-bold text-blue-500">
+                            <option value="1">Priority 1 (Top)</option>
+                            <option value="2">Priority 2</option>
+                            <option value="3">Priority 3</option>
+                        </select>
+                    </div>
+                    <input type="url" id="wish-link" placeholder="Paste Shopee/Lazada Link" class="premium-input">
+                    <select id="wish-owner" class="premium-input font-bold text-pink-500">
+                        <option value="Phương">For Phương 👸</option>
+                        <option value="Sơn">For Sơn 🤵‍♂️</option>
+                    </select>
+                    <button onclick="addWish()" id="add-wish-btn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg">Add to List</button>
+                </div>
+            </div>
+            
+            <div id="active-wishes" class="space-y-6">
+                <div id="wishlist-phuong"></div>
+                <div id="wishlist-son"></div>
+            </div>
+
+            <div class="pt-8">
+                <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 px-4">Dream Achieved 🏆</h3>
+                <div id="wishlist-bought" class="grid grid-cols-2 gap-3 opacity-60"></div>
+            </div>
+        </section>
+
+        <section id="history" class="tab-content space-y-4">
+            <div id="monthly-history-container" class="space-y-6"></div>
+        </section>
+
+        <section id="settings" class="tab-content space-y-6">
+            <div class="glass p-8 text-center space-y-4">
+                <h3 class="font-black text-slate-800">Love Hub Settings</h3>
+                <button onclick="resetApp()" class="w-full py-4 rounded-2xl bg-rose-50 text-rose-500 font-bold">Wipe Cloud Data</button>
+            </div>
+        </section>
+
+        <footer class="pb-12 text-center">
+            <div class="inline-flex items-center gap-2 px-6 py-2 bg-white rounded-full border border-pink-100 shadow-sm">
+                <span id="days-together-footer" class="text-[11px] font-black text-pink-400"></span>
+            </div>
+        </footer>
+    </main>
+
+    <div id="log-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl">
+            <h3 id="modal-title" class="text-xl font-black text-center text-slate-800">Add Spending</h3>
+            <select id="modal-amount" class="premium-input font-black text-lg text-blue-500"></select>
+            <div class="flex gap-3">
+                <button onclick="closeLogModal()" class="flex-1 py-4 bg-slate-50 rounded-2xl font-bold">Cancel</button>
+                <button id="modal-confirm" class="flex-2 py-4 bg-slate-900 text-white rounded-2xl font-bold px-4">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-8 left-6 right-6 z-[100]">
+        <div class="max-w-md mx-auto glass rounded-[2.5rem] shadow-2xl p-2 flex justify-around items-center border border-white">
+            <button onclick="showTab('dashboard')" class="nav-btn active" data-tab="dashboard"><i class="fa-solid fa-house-heart"></i></button>
+            <button onclick="showTab('wishlist')" class="nav-btn" data-tab="wishlist"><i class="fa-solid fa-wand-sparkles"></i></button>
+            <button onclick="showTab('history')" class="nav-btn" data-tab="history"><i class="fa-solid fa-receipt"></i></button>
+        </div>
+    </nav>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
