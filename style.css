@@ -16,9 +16,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: linear-gradient
 .wish-card { background: white; border-radius: 2rem; padding: 1.25rem; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 .priority-1-card { border: 2px solid #fbbf24 !important; background: #fffdf5; }
 
-.p-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 8px; margin-bottom: 4px; display: inline-block; }
-.p-1 { background: #fef3c7; color: #d97706; }
-
 .purchase-btn { background: #10b981; color: white; border-radius: 12px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
 .delete-btn { background: #fef2f2; color: #ef4444; border-radius: 12px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
 

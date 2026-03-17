@@ -9,35 +9,34 @@ const firebaseConfig = {
     messagingSenderId: "23434889327",
     appId: "1:23434889327:web:33d22a4a0562f6c3e4a59a",
     measurementId: "G-Y51YZX4CTG"
-  };
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const FIRST_DATE = "2022-05-17";
+const FIRST_DATE = "2022-05-17"; // Your anniversary date
 
 let state = { currentMonthId: "", months: {}, wishlist: [], wishlistBought: [] };
 let docRef;
 let chart;
 
-// --- LOGIN LOGIC ---
+// --- SECRET KEY LOGIN ---
 window.loginWithKey = function() {
     const key = document.getElementById('couple-id-input').value.trim();
     if (key) {
-        localStorage.setItem('son_phuong_key', key);
-        initApp(key);
+        localStorage.setItem('son_phuong_id', key);
+        startSync(key);
     }
-}
+};
 
-const savedKey = localStorage.getItem('son_phuong_key');
-if (savedKey) initApp(savedKey);
+const savedKey = localStorage.getItem('son_phuong_id');
+if (savedKey) startSync(savedKey);
 
-function initApp(key) {
+function startSync(key) {
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('app-content').classList.replace('opacity-0', 'opacity-100');
     
     docRef = doc(db, "relationships", key);
     
-    // Real-time listener
     onSnapshot(docRef, (snap) => {
         if (snap.exists()) {
             state = snap.data();
@@ -48,7 +47,7 @@ function initApp(key) {
     });
 }
 
-// --- APP CORE ---
+// --- CORE LOGIC ---
 async function saveData() { if(docRef) await updateDoc(docRef, state); }
 
 function updateUI() {
@@ -88,16 +87,16 @@ window.finishSetup = async function() {
         document.getElementById('setup-overlay').classList.add('hidden');
         await saveData();
     }
-}
+};
 
 window.addWish = async function() {
     const item = document.getElementById('wish-item').value;
     const price = parseInt(document.getElementById('wish-price').value);
     const priority = parseInt(document.getElementById('wish-priority').value);
     const owner = document.getElementById('wish-owner').value;
-    const link = document.getElementById('wish-link').value;
 
-    state.wishlist.push({ id: Date.now(), item, price, priority, owner, link, img: "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=200" });
+    if(!item) return;
+    state.wishlist.push({ id: Date.now(), item, price, priority, owner });
     state.wishlist.sort((a,b) => a.priority - b.priority);
     document.getElementById('wish-item').value = '';
     await saveData();
@@ -106,7 +105,7 @@ window.addWish = async function() {
 window.purchaseWish = async function(id) {
     const idx = state.wishlist.findIndex(w => w.id === id);
     const item = state.wishlist[idx];
-    if(confirm(`Buying ${item.item}?`)) {
+    if(confirm(`Buying ${item.item}? -${item.price}k`)) {
         const cur = state.months[state.currentMonthId];
         cur.budget -= item.price;
         cur.spending.Shopping = (cur.spending.Shopping || 0) + item.price;
@@ -117,7 +116,7 @@ window.purchaseWish = async function(id) {
 };
 
 window.deleteWish = async function(id) {
-    if(confirm("Delete wish?")) {
+    if(confirm("Remove this wish?")) {
         state.wishlist = state.wishlist.filter(w => w.id !== id);
         await saveData();
     }
@@ -127,7 +126,7 @@ function renderWishlist() {
     const list = (owner) => state.wishlist.filter(w => w.owner === owner).map(w => `
         <div class="wish-card ${w.priority === 1 ? 'priority-1-card' : ''}">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-pink-50 rounded-lg flex items-center justify-center text-pink-400">P${w.priority}</div>
+                <div class="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center font-black text-xs text-slate-400">P${w.priority}</div>
                 <div>
                     <h4 class="text-xs font-bold">${w.item}</h4>
                     <p class="text-xs font-black text-pink-500">${w.price}k</p>
@@ -148,7 +147,7 @@ function renderHistory() {
     container.innerHTML = Object.keys(state.months).sort().reverse().map(mid => `
         <div class="glass p-6">
             <h3 class="font-black mb-2">${mid}</h3>
-            ${state.months[mid].logs.slice(0,3).map(l => `<div class="flex justify-between text-[10px] opacity-60"><span>${l.detail || l.cat}</span><span>-${l.amt}k</span></div>`).join('')}
+            ${state.months[mid].logs.slice(0,5).map(l => `<div class="flex justify-between text-[10px] opacity-60 py-1 border-b border-black/5"><span>${l.detail || l.cat}</span><span>-${l.amt}k</span></div>`).join('')}
         </div>
     `).join('');
 }
@@ -198,9 +197,11 @@ function updateChart() {
     chart.update();
 }
 
+// DROPDOWNS
 const els = [document.getElementById('wish-price'), document.getElementById('modal-amount')];
 els.forEach(el => { for(let i=0; i<=5000; i+=50) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + "k"; el.appendChild(opt); } });
 
+// FLOATING HEARTS
 setInterval(() => {
     const c = document.getElementById('heart-container');
     const h = document.createElement('div');
