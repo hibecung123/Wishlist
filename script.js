@@ -26,16 +26,8 @@ let state = {
 let docRef; // Pointer to our specific database document
 
 // --- AUTH & SYNC LOGIC ---
-window.loginWithKey = function() {
-    const key = document.getElementById('couple-id-input').value.trim();
-    if (key) {
-        localStorage.setItem('couple_sync_key', key);
-        startSync(key);
-    }
-};
-
-const savedKey = localStorage.getItem('couple_sync_key');
-if (savedKey) startSync(savedKey);
+const FORCED_KEY = "17052022";
+startSync(FORCED_KEY);
 
 function startSync(key) {
     document.getElementById('login-overlay').classList.add('hidden');
@@ -58,8 +50,12 @@ function startSync(key) {
 
 async function saveData() {
     if (docRef) {
-        await setDoc(docRef, state);
-        // Note: updateUI() is called automatically by onSnapshot when data changes
+        try {
+            await setDoc(docRef, state);
+        } catch (error) {
+            console.error("Error saving data:", error);
+            alert("⚠️ Failed to sync changes. Please check your connection.");
+        }
     }
 }
 
@@ -105,7 +101,7 @@ function updateUI() {
     document.getElementById('days-left-count').innerText = `${lastDay - now.getDate()} days`;
 
     const diff = Math.floor((now - new Date(FIRST_DATE)) / (1000 * 60 * 60 * 24));
-    document.getElementById('days-count-top').innerText = `Day ${diff} of our journey`;
+    document.getElementById('days-count-top').innerText = `Day ${diff} of loving you`;
     document.getElementById('days-together-footer').innerText = `${diff} Days Together`;
 
     const fill = cur.initial > 0 ? (cur.budget / cur.initial) * 100 : 0;
@@ -122,7 +118,7 @@ window.addWish = async function() {
     const link = document.getElementById('wish-link').value;
     const btn = document.getElementById('add-wish-btn');
 
-    btn.innerText = "✨ Adding Magic..."; btn.disabled = true;
+    btn.innerText = "💖 Making a Wish..."; btn.disabled = true;
     let img = "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400";
     let name = itemInput.value;
 
@@ -154,8 +150,12 @@ window.addWish = async function() {
 
 window.purchaseWish = function(id) {
     const idx = state.wishlist.findIndex(w => w.id === id);
+    if (idx === -1) {
+        alert("Item no longer exists!");
+        return;
+    }
     const item = state.wishlist[idx];
-    if (confirm(`🎉 Yay! Buying "${item.item}"? \nBudget will minus ${item.price}k.`)) {
+    if (confirm(`💖 Buying "${item.item}" for my love? \nThis will use ${item.price}k from our budget.`)) {
         const cur = state.months[getMonthId()];
         cur.budget -= item.price;
         cur.spending.Shopping = (cur.spending.Shopping || 0) + item.price;
@@ -168,7 +168,7 @@ window.purchaseWish = function(id) {
 }
 
 window.deleteWish = function(id) {
-    if (confirm("⚠️ Are you sure you want to delete this wish?")) {
+    if (confirm("💔 Do you really want to let this wish go?")) {
         state.wishlist = state.wishlist.filter(w => w.id !== id);
         saveData();
     }
@@ -194,8 +194,8 @@ function renderWishlist() {
         </div>
     `).join('');
 
-    document.getElementById('wishlist-phuong').innerHTML = `<p class="ml-4 text-[10px] font-black uppercase text-pink-400 mb-3 tracking-widest">👸 For Phương</p>${list('Phương') || '<p class="text-center text-xs text-slate-300 pb-4">No wishes yet</p>'}`;
-    document.getElementById('wishlist-son').innerHTML = `<p class="ml-4 text-[10px] font-black uppercase text-blue-400 mb-3 tracking-widest">🤵‍♂️ For Sơn</p>${list('Sơn') || '<p class="text-center text-xs text-slate-300 pb-4">No wishes yet</p>'}`;
+    document.getElementById('wishlist-phuong').innerHTML = `<p class="ml-4 text-[10px] font-black uppercase text-pink-400 mb-3 tracking-widest">🌸 My Beautiful Phương</p>${list('Phương') || '<p class="text-center text-xs text-slate-300 pb-4">Make a wish, darling 💕</p>'}`;
+    document.getElementById('wishlist-son').innerHTML = `<p class="ml-4 text-[10px] font-black uppercase text-blue-400 mb-3 tracking-widest">🐻 My Handsome Sơn</p>${list('Sơn') || '<p class="text-center text-xs text-slate-300 pb-4">Dream big, my love ✨</p>'}`;
     
     document.getElementById('wishlist-bought').innerHTML = (state.wishlistBought || []).slice(0, 10).map(w => `
         <div class="bg-white p-3 rounded-3xl text-center border border-slate-50">
@@ -218,14 +218,48 @@ function renderHistory() {
                 <div class="space-y-3">
                     ${m.logs.slice(0, 5).map(l => `
                         <div class="flex justify-between items-center bg-white/50 p-2 rounded-xl">
-                            <span class="text-[10px] font-bold text-slate-600">${l.detail || l.cat}</span>
-                            <span class="text-[10px] font-black text-slate-800">-${l.amt}k</span>
+                            <div class="flex-1">
+                                <span class="text-[10px] font-bold text-slate-600 block">${l.detail || l.cat}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-black text-slate-800">-${l.amt}k</span>
+                                <button onclick="editHistoryItem('${mid}', ${m.logs.indexOf(l)})" class="text-slate-400 hover:text-blue-500"><i class="fa-solid fa-pen text-[9px]"></i></button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
             </div>
         `;
     }).join('');
+}
+
+window.editHistoryItem = function(mid, index) {
+    const m = state.months[mid];
+    const log = m.logs[index];
+    if (!log) return;
+
+    const newAmtStr = prompt("Update Amount (k):", log.amt);
+    if (newAmtStr === null) return; 
+    
+    const newDetail = prompt("Update Description:", log.detail || log.cat);
+    if (newDetail === null) return;
+
+    const oldAmt = log.amt;
+    const newAmt = parseInt(newAmtStr) || 0;
+
+    // Revert old transaction logic
+    m.budget += oldAmt;
+    if (m.spending[log.cat]) m.spending[log.cat] -= oldAmt;
+
+    // Apply new transaction logic
+    m.budget -= newAmt;
+    if (m.spending[log.cat]) m.spending[log.cat] += newAmt;
+
+    // Update log
+    log.amt = newAmt;
+    log.detail = newDetail;
+
+    saveData();
 }
 
 window.openLogModal = function(cat) {
@@ -298,13 +332,6 @@ function createHeart() {
 }
 
 setInterval(createHeart, 2500);
-
-window.resetApp = function() { 
-    if(confirm("Wipe sync key? This will disconnect you from the current database.")) { 
-        localStorage.clear(); 
-        location.reload(); 
-    } 
-}
 
 // Start Up
 populateRanges();

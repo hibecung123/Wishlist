@@ -9,9 +9,12 @@
 
 body { 
     font-family: 'Plus Jakarta Sans', sans-serif; 
-    background: linear-gradient(135deg, #fff5f7 0%, #f0f7ff 100%); 
+    background: linear-gradient(135deg, rgba(255, 245, 247, 0.95) 0%, rgba(240, 247, 255, 0.95) 100%), url('images.jpeg');
+    background-size: cover;
+    background-attachment: fixed;
     color: var(--dark); 
-    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .tab-content { display: none; }
