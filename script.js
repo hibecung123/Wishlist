@@ -1,184 +1,277 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// --- FIREBASE CONFIGURATION ---
 const firebaseConfig = {
-    apiKey: "AIzaSyCdlxmmOecQ3NLFN1ZoDgG4CT_PWEiylgw",
-    authDomain: "wishlist-a389f.firebaseapp.com",
-    projectId: "wishlist-a389f",
-    storageBucket: "wishlist-a389f.firebasestorage.app",
-    messagingSenderId: "23434889327",
-    appId: "1:23434889327:web:33d22a4a0562f6c3e4a59a",
-    measurementId: "G-Y51YZX4CTG"
-};
+    apiKey: "AIzaSyC4Q_jVLFJ8v9YyPLpFHOV1fNpayzQMc88",
+    authDomain: "wishlist1627.firebaseapp.com",
+    projectId: "wishlist1627",
+    storageBucket: "wishlist1627.firebasestorage.app",
+    messagingSenderId: "817139671833",
+    appId: "1:817139671833:web:df7973679365444f679b88",
+    measurementId: "G-8F4SYXR5PE"
+  };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const FIRST_DATE = "2022-05-17"; // Your anniversary date
+const FIRST_DATE = "2022-05-17";
 
-let state = { currentMonthId: "", months: {}, wishlist: [], wishlistBought: [] };
-let docRef;
-let chart;
+let state = {
+    currentMonthId: "", 
+    months: {}, 
+    wishlist: [],
+    wishlistBought: []
+};
 
-// --- SECRET KEY LOGIN ---
+let docRef; // Pointer to our specific database document
+
+// --- AUTH & SYNC LOGIC ---
 window.loginWithKey = function() {
     const key = document.getElementById('couple-id-input').value.trim();
     if (key) {
-        localStorage.setItem('son_phuong_id', key);
+        localStorage.setItem('couple_sync_key', key);
         startSync(key);
     }
 };
 
-const savedKey = localStorage.getItem('son_phuong_id');
+const savedKey = localStorage.getItem('couple_sync_key');
 if (savedKey) startSync(savedKey);
 
 function startSync(key) {
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('app-content').classList.replace('opacity-0', 'opacity-100');
     
+    // Connect to the specific "room" for this couple key
     docRef = doc(db, "relationships", key);
     
+    // Listen for real-time changes
     onSnapshot(docRef, (snap) => {
         if (snap.exists()) {
             state = snap.data();
             updateUI();
         } else {
-            setDoc(docRef, state);
+            // If the key is brand new, create the first data entry
+            saveData();
         }
     });
 }
 
-// --- CORE LOGIC ---
-async function saveData() { if(docRef) await updateDoc(docRef, state); }
+async function saveData() {
+    if (docRef) {
+        await setDoc(docRef, state);
+        // Note: updateUI() is called automatically by onSnapshot when data changes
+    }
+}
 
-function updateUI() {
-    const mid = `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
+// --- APP LOGIC (Identical to your original) ---
+function getMonthId() {
+    const d = new Date();
+    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+}
+
+function checkMonthlyReset() {
+    const mid = getMonthId();
     if (state.currentMonthId !== mid) {
         state.currentMonthId = mid;
         if (!state.months[mid]) {
             state.months[mid] = { budget: 0, initial: 0, logs: [], spending: { Eating: 0, "Going Out": 0, Shopping: 0 } };
+            document.getElementById('current-month-name').innerText = new Date().toLocaleDateString('vi-VN', {month: 'long', year: 'numeric'});
             document.getElementById('setup-overlay').classList.remove('hidden');
+            saveData();
         }
+    }
+}
+
+window.finishSetup = function() {
+    const b = parseInt(document.getElementById('setup-budget').value);
+    if (b > 0) {
+        state.months[getMonthId()].budget = b;
+        state.months[getMonthId()].initial = b;
+        document.getElementById('setup-overlay').classList.add('hidden');
         saveData();
     }
+}
 
-    const cur = state.months[mid];
+function updateUI() {
+    checkMonthlyReset();
+    const cur = state.months[getMonthId()];
     if (!cur) return;
 
     document.getElementById('display-budget').innerText = `${cur.budget.toLocaleString()}k`;
     document.getElementById('total-spent').innerText = `${(cur.initial - cur.budget).toLocaleString()}k`;
     
-    const diff = Math.floor((new Date() - new Date(FIRST_DATE)) / (1000 * 60 * 60 * 24));
-    document.getElementById('days-count-top').innerText = `Day ${diff} of Love`;
-    document.getElementById('days-together-footer').innerText = `${diff} Days Together ❤️`;
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    document.getElementById('days-left-count').innerText = `${lastDay - now.getDate()} days`;
 
-    const fill = (cur.budget / cur.initial) * 100;
+    const diff = Math.floor((now - new Date(FIRST_DATE)) / (1000 * 60 * 60 * 24));
+    document.getElementById('days-count-top').innerText = `Day ${diff} of our journey`;
+    document.getElementById('days-together-footer').innerText = `${diff} Days Together`;
+
+    const fill = cur.initial > 0 ? (cur.budget / cur.initial) * 100 : 0;
     document.getElementById('health-bar-fill').style.width = `${Math.max(0, fill)}%`;
 
     renderWishlist();
     renderHistory();
-    if (chart) updateChart();
+    initChart();
 }
 
-window.finishSetup = async function() {
-    const b = parseInt(document.getElementById('setup-budget').value);
-    if (b > 0) {
-        state.months[state.currentMonthId].budget = b;
-        state.months[state.currentMonthId].initial = b;
-        document.getElementById('setup-overlay').classList.add('hidden');
-        await saveData();
-    }
-};
-
 window.addWish = async function() {
-    const item = document.getElementById('wish-item').value;
+    const itemInput = document.getElementById('wish-item');
     const price = parseInt(document.getElementById('wish-price').value);
-    const priority = parseInt(document.getElementById('wish-priority').value);
-    const owner = document.getElementById('wish-owner').value;
+    const link = document.getElementById('wish-link').value;
+    const btn = document.getElementById('add-wish-btn');
 
-    if(!item) return;
-    state.wishlist.push({ id: Date.now(), item, price, priority, owner });
-    state.wishlist.sort((a,b) => a.priority - b.priority);
-    document.getElementById('wish-item').value = '';
-    await saveData();
-};
+    btn.innerText = "✨ Adding Magic..."; btn.disabled = true;
+    let img = "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400";
+    let name = itemInput.value;
 
-window.purchaseWish = async function(id) {
+    if (link) {
+        try {
+            const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(link)}`);
+            const data = await res.json();
+            if (data.status === 'success') {
+                img = data.data.image?.url || img;
+                if (!name) name = data.data.title;
+            }
+        } catch (e) {}
+    }
+
+    state.wishlist.push({
+        id: Date.now(),
+        item: name || "Surprise Gift",
+        price,
+        priority: parseInt(document.getElementById('wish-priority').value),
+        owner: document.getElementById('wish-owner').value,
+        link, img
+    });
+    
+    state.wishlist.sort((a, b) => a.priority - b.priority);
+    itemInput.value = ''; document.getElementById('wish-link').value = '';
+    btn.innerText = "Add to List"; btn.disabled = false;
+    saveData();
+}
+
+window.purchaseWish = function(id) {
     const idx = state.wishlist.findIndex(w => w.id === id);
     const item = state.wishlist[idx];
-    if(confirm(`Buying ${item.item}? -${item.price}k`)) {
-        const cur = state.months[state.currentMonthId];
+    if (confirm(`🎉 Yay! Buying "${item.item}"? \nBudget will minus ${item.price}k.`)) {
+        const cur = state.months[getMonthId()];
         cur.budget -= item.price;
         cur.spending.Shopping = (cur.spending.Shopping || 0) + item.price;
-        cur.logs.unshift({ cat: 'Shopping', amt: item.price, detail: item.item });
+        cur.logs.unshift({ cat: 'Shopping', amt: item.price, detail: `Gift: ${item.item}`, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
+        
+        state.wishlistBought.unshift({...item, boughtDate: new Date().toLocaleDateString()});
         state.wishlist.splice(idx, 1);
-        await saveData();
+        saveData();
     }
-};
+}
 
-window.deleteWish = async function(id) {
-    if(confirm("Remove this wish?")) {
+window.deleteWish = function(id) {
+    if (confirm("⚠️ Are you sure you want to delete this wish?")) {
         state.wishlist = state.wishlist.filter(w => w.id !== id);
-        await saveData();
+        saveData();
     }
-};
+}
 
 function renderWishlist() {
     const list = (owner) => state.wishlist.filter(w => w.owner === owner).map(w => `
-        <div class="wish-card ${w.priority === 1 ? 'priority-1-card' : ''}">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center font-black text-xs text-slate-400">P${w.priority}</div>
+        <div class="wish-card flex items-center justify-between mb-3 ${w.priority === 1 ? 'priority-1-card' : ''}">
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <img src="${w.img}" class="w-14 h-14 rounded-2xl object-cover shadow-sm" onclick="window.open('${w.link}','_blank')">
+                    <span class="absolute -top-2 -left-2 priority-badge ${w.priority === 1 ? 'priority-1-badge' : 'bg-slate-100 text-slate-500'}">P${w.priority}</span>
+                </div>
                 <div>
-                    <h4 class="text-xs font-bold">${w.item}</h4>
-                    <p class="text-xs font-black text-pink-500">${w.price}k</p>
+                    <h4 class="text-xs font-bold text-slate-800 truncate w-32">${w.item}</h4>
+                    <p class="text-sm font-black text-pink-500">${w.price}k</p>
                 </div>
             </div>
             <div class="flex gap-2">
                 <button onclick="purchaseWish(${w.id})" class="purchase-btn"><i class="fa-solid fa-check"></i></button>
-                <button onclick="deleteWish(${w.id})" class="delete-btn"><i class="fa-solid fa-trash-can"></i></button>
+                <button onclick="deleteWish(${w.id})" class="delete-btn"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
             </div>
         </div>
     `).join('');
-    document.getElementById('wishlist-phuong').innerHTML = `<p class="ml-4 text-[10px] font-black text-pink-400 mb-2 uppercase">👸 Phương</p>${list('Phương')}`;
-    document.getElementById('wishlist-son').innerHTML = `<p class="ml-4 text-[10px] font-black text-blue-400 mb-2 mt-4 uppercase">🤵‍♂️ Sơn</p>${list('Sơn')}`;
+
+    document.getElementById('wishlist-phuong').innerHTML = `<p class="ml-4 text-[10px] font-black uppercase text-pink-400 mb-3 tracking-widest">👸 For Phương</p>${list('Phương') || '<p class="text-center text-xs text-slate-300 pb-4">No wishes yet</p>'}`;
+    document.getElementById('wishlist-son').innerHTML = `<p class="ml-4 text-[10px] font-black uppercase text-blue-400 mb-3 tracking-widest">🤵‍♂️ For Sơn</p>${list('Sơn') || '<p class="text-center text-xs text-slate-300 pb-4">No wishes yet</p>'}`;
+    
+    document.getElementById('wishlist-bought').innerHTML = (state.wishlistBought || []).slice(0, 10).map(w => `
+        <div class="bg-white p-3 rounded-3xl text-center border border-slate-50">
+            <img src="${w.img}" class="w-10 h-10 rounded-full mx-auto mb-2 grayscale opacity-50">
+            <p class="text-[9px] font-bold truncate text-slate-400">${w.item}</p>
+        </div>
+    `).join('');
 }
 
 function renderHistory() {
     const container = document.getElementById('monthly-history-container');
-    container.innerHTML = Object.keys(state.months).sort().reverse().map(mid => `
-        <div class="glass p-6">
-            <h3 class="font-black mb-2">${mid}</h3>
-            ${state.months[mid].logs.slice(0,5).map(l => `<div class="flex justify-between text-[10px] opacity-60 py-1 border-b border-black/5"><span>${l.detail || l.cat}</span><span>-${l.amt}k</span></div>`).join('')}
-        </div>
-    `).join('');
+    container.innerHTML = Object.keys(state.months).sort().reverse().map(mid => {
+        const m = state.months[mid];
+        return `
+            <div class="glass p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-slate-800">${mid}</h3>
+                    <p class="text-xs font-bold text-pink-500">Spent ${(m.initial - m.budget)}k</p>
+                </div>
+                <div class="space-y-3">
+                    ${m.logs.slice(0, 5).map(l => `
+                        <div class="flex justify-between items-center bg-white/50 p-2 rounded-xl">
+                            <span class="text-[10px] font-bold text-slate-600">${l.detail || l.cat}</span>
+                            <span class="text-[10px] font-black text-slate-800">-${l.amt}k</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
-window.openLogModal = (cat) => {
+window.openLogModal = function(cat) {
     document.getElementById('log-modal').classList.remove('hidden');
-    document.getElementById('modal-confirm').onclick = async () => {
+    document.getElementById('modal-title').innerText = `Spending on ${cat}`;
+    document.getElementById('modal-confirm').onclick = () => {
         const amt = parseInt(document.getElementById('modal-amount').value);
-        const cur = state.months[state.currentMonthId];
+        const cur = state.months[getMonthId()];
         cur.budget -= amt;
         cur.spending[cat === 'Eating' ? 'Eating' : 'Going Out'] += amt;
-        cur.logs.unshift({ cat, amt, time: new Date().toLocaleTimeString() });
-        document.getElementById('log-modal').classList.add('hidden');
-        await saveData();
+        cur.logs.unshift({ cat, amt, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
+        closeLogModal(); saveData();
     };
-};
-window.closeLogModal = () => document.getElementById('log-modal').classList.add('hidden');
+}
+
+window.closeLogModal = function() { document.getElementById('log-modal').classList.add('hidden'); }
+
+function populateRanges() {
+    const els = [document.getElementById('wish-price'), document.getElementById('modal-amount')];
+    els.forEach(el => {
+        if (!el) return;
+        el.innerHTML = "";
+        for(let i=0; i<=10000; i+=50) {
+            let opt = document.createElement('option'); opt.value = i; opt.innerText = i + "k"; el.appendChild(opt);
+        }
+    });
+}
 
 window.showTab = function(t) {
     document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(x => x.classList.remove('active'));
     document.getElementById(t).classList.add('active');
-    document.querySelector(`[data-tab="${t}"]`).classList.add('active');
+    const navBtn = document.querySelector(`[data-tab="${t}"]`);
+    if (navBtn) navBtn.classList.add('active');
     if(t === 'dashboard') initChart();
-};
+}
 
+let chartInstance;
 function initChart() {
-    const cur = state.months[state.currentMonthId];
-    const ctx = document.getElementById('spendingChart').getContext('2d');
-    if (chart) chart.destroy();
-    chart = new Chart(ctx, {
+    const cur = state.months[getMonthId()];
+    if (!cur) return;
+    const canvas = document.getElementById('spendingChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Eating', 'Dates', 'Shopping'],
@@ -191,23 +284,27 @@ function initChart() {
         options: { plugins: { legend: { display: false } }, maintainAspectRatio: false }
     });
 }
-function updateChart() {
-    const cur = state.months[state.currentMonthId];
-    chart.data.datasets[0].data = [cur.spending.Eating, cur.spending['Going Out'], cur.spending.Shopping || 0];
-    chart.update();
-}
 
-// DROPDOWNS
-const els = [document.getElementById('wish-price'), document.getElementById('modal-amount')];
-els.forEach(el => { for(let i=0; i<=5000; i+=50) { let opt = document.createElement('option'); opt.value = i; opt.innerText = i + "k"; el.appendChild(opt); } });
-
-// FLOATING HEARTS
-setInterval(() => {
+function createHeart() {
     const c = document.getElementById('heart-container');
+    if (!c) return;
     const h = document.createElement('div');
     h.classList.add('heart', 'fa-solid', 'fa-heart');
     h.style.left = Math.random() * 100 + "vw";
     h.style.fontSize = (Math.random() * 15 + 10) + "px";
+    h.style.color = Math.random() > 0.5 ? 'rgba(244, 114, 182, 0.2)' : 'rgba(96, 165, 250, 0.2)';
     c.appendChild(h);
     setTimeout(() => h.remove(), 10000);
-}, 3000);
+}
+
+setInterval(createHeart, 2500);
+
+window.resetApp = function() { 
+    if(confirm("Wipe sync key? This will disconnect you from the current database.")) { 
+        localStorage.clear(); 
+        location.reload(); 
+    } 
+}
+
+// Start Up
+populateRanges();
