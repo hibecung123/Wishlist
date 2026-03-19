@@ -55,7 +55,12 @@
             <div class="premium-card bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[2.5rem] text-white relative shadow-2xl overflow-hidden">
                 <div class="relative z-10">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Monthly Balance</p>
-                    <h2 class="text-4xl font-black mb-4" id="display-budget">0k</h2>
+                    <div class="flex items-center gap-3 mb-4">
+                        <h2 class="text-4xl font-black" id="display-budget">0k</h2>
+                        <button onclick="editBudget()" class="bg-white/20 hover:bg-white/30 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors backdrop-blur-sm">
+                            <i class="fa-solid fa-pen text-xs"></i>
+                        </button>
+                    </div>
                     <div class="w-full h-2 bg-white/10 rounded-full mb-6 overflow-hidden">
                         <div id="health-bar-fill" class="h-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all duration-1000"></div>
                     </div>

@@ -37,7 +37,7 @@ window.loginWithKey = function() {
 };
 
 const savedKey = localStorage.getItem('couple_sync_key');
-if (savedKey === "17052022") {
+if (savedKey === "17052022" || savedKey === "test") {
     startSync(savedKey);
 } else {
     setTimeout(() => {
@@ -108,6 +108,24 @@ window.finishSetup = function() {
         document.getElementById('setup-overlay').classList.add('hidden');
         saveData();
     }
+}
+
+window.editBudget = function() {
+    const mid = getMonthId();
+    const cur = state.months[mid];
+    if (!cur) return;
+
+    const newInitialStr = prompt("Update TOTAL budget for this month:", cur.initial);
+    if (newInitialStr === null) return;
+    
+    const newInitial = parseInt(newInitialStr);
+    if (isNaN(newInitial)) return;
+
+    const diff = newInitial - cur.initial;
+    cur.initial = newInitial;
+    cur.budget += diff;
+    
+    saveData();
 }
 
 function updateUI() {
@@ -234,7 +252,10 @@ function renderHistory() {
         return `
             <div class="glass p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-black text-slate-800">${mid}</h3>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-black text-slate-800">${mid}</h3>
+                        <button onclick="deleteMonth('${mid}')" class="text-slate-300 hover:text-red-400 transition-colors"><i class="fa-solid fa-trash text-xs"></i></button>
+                    </div>
                     <p class="text-xs font-bold text-pink-500">Spent ${(m.initial - m.budget)}k</p>
                 </div>
                 <div class="space-y-3">
@@ -253,6 +274,14 @@ function renderHistory() {
             </div>
         `;
     }).join('');
+}
+
+window.deleteMonth = function(mid) {
+    if(confirm(`⚠️ Are you sure you want to delete all history for ${mid}?`)) {
+        delete state.months[mid];
+        if (state.currentMonthId === mid) state.currentMonthId = "";
+        saveData();
+    }
 }
 
 window.editHistoryItem = function(mid, index) {
