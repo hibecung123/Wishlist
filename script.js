@@ -26,8 +26,30 @@ let state = {
 let docRef; // Pointer to our specific database document
 
 // --- AUTH & SYNC LOGIC ---
-const FORCED_KEY = "17052022";
-startSync(FORCED_KEY);
+window.loginWithKey = function() {
+    const key = document.getElementById('couple-id-input').value.trim();
+    if (key === "17052022") {
+        localStorage.setItem('couple_sync_key', key);
+        startSync(key);
+    } else {
+        alert("Sadly, you forget the special date! 💔");
+    }
+};
+
+const savedKey = localStorage.getItem('couple_sync_key');
+if (savedKey === "17052022") {
+    startSync(savedKey);
+} else {
+    setTimeout(() => {
+        const answer = prompt("The day you becoming mine");
+        if (answer === "17052022") {
+            localStorage.setItem('couple_sync_key', "17052022");
+            startSync("17052022");
+        } else {
+            alert("Sadly, you forget the special date! 💔");
+        }
+    }, 500);
+}
 
 function startSync(key) {
     document.getElementById('login-overlay').classList.add('hidden');
