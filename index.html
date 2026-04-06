@@ -9,7 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="pb-32">
+ <body class="pb-32 bg-black text-white">
     <div id="heart-container"></div>
 
     <div id="login-overlay" class="fixed inset-0 bg-pink-50 z-[500] flex items-center justify-center p-6">
@@ -36,16 +36,15 @@
 
     <header class="pt-12 pb-6 px-6 max-w-2xl mx-auto flex justify-between items-center">
         <div>
-            <h1 class="text-3xl font-black text-slate-800 flex items-center gap-2">
+            <h1 class="text-3xl font-black text-white flex items-center gap-2">
                 <span class="text-blue-400">Sơn</span> 
                 <i class="fa-solid fa-heart text-pink-400 animate-pulse text-xl"></i> 
                 <span class="text-pink-400">Phương</span>
             </h1>
             <p id="days-count-top" class="text-[11px] font-bold text-slate-400 tracking-wide mt-1"></p>
         </div>
-        <button onclick="showTab('settings')" class="w-10 h-10 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center">
-            <img src="images.jpg" class="w-10 h-10 rounded-full object-cover mx-auto mb-2 shadow-md">
-            <i class="fa-solid fa-sparkles text-pink-300"></i>
+        <button onclick="showTab('settings')" class="w-10 h-10 rounded-full shadow-lg overflow-hidden flex items-center justify-center">
+            <img src="images.jpg" class="w-full h-full object-cover">
         </button>
     </header>
 
@@ -80,12 +79,12 @@
             <div class="grid grid-cols-2 gap-4">
                 <button onclick="openLogModal('Eating')" class="action-card bg-white p-6 rounded-[2rem] border-b-4 border-orange-100 shadow-sm text-left">
                     <div class="w-12 h-12 bg-orange-50 text-orange-400 rounded-2xl flex items-center justify-center mb-4 text-xl"><i class="fa-solid fa-utensils"></i></div>
-                    <p class="font-black text-slate-800">Eating</p>
+                    <p class="font-black text-slate-900">Eating</p>
                     <p class="text-[10px] text-slate-400">Yummy dates</p>
                 </button>
                 <button onclick="openLogModal('Going Out')" class="action-card bg-white p-6 rounded-[2rem] border-b-4 border-blue-100 shadow-sm text-left">
                     <div class="w-12 h-12 bg-blue-50 text-blue-400 rounded-2xl flex items-center justify-center mb-4 text-xl"><i class="fa-solid fa-video"></i></div>
-                    <p class="font-black text-slate-800">Going Out</p>
+                    <p class="font-black text-slate-900">Going Out</p>
                     <p class="text-[10px] text-slate-400">Movies & fun</p>
                 </button>
             </div>
@@ -101,18 +100,38 @@
                 <div class="space-y-3">
                     <input type="text" id="wish-item" placeholder="Product name..." class="premium-input">
                     <div class="grid grid-cols-2 gap-3">
-                        <select id="wish-price" class="premium-input font-bold"></select>
-                        <select id="wish-priority" class="premium-input font-bold text-blue-500">
-                            <option value="1">Priority 1 (High)</option>
-                            <option value="2">Priority 2 (Mid)</option>
-                            <option value="3">Priority 3 (Low)</option>
-                        </select>
+                        <div class="space-y-2">
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-300 mb-1">Price (k)</p>
+                                <input type="number" id="wish-price-input" placeholder="Type" min="0" max="10000" class="premium-input text-sm equal-height">
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-300 mb-1">Quick</p>
+                                <select id="wish-price-range" class="premium-input text-sm equal-height">
+                                    <option value="">Select...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-300 mb-1">Priority</p>
+                                <select id="wish-priority" class="premium-input text-sm font-bold equal-height">
+                                    <option value="1">P1 (High)</option>
+                                    <option value="2">P2 (Mid)</option>
+                                    <option value="3">P3 (Low)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-300 mb-1">For</p>
+                                <select id="wish-owner" class="premium-input text-sm font-bold equal-height">
+                                    <option value="Phương">👸 Phương</option>
+                                    <option value="Sơn">🐻 Sơn</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     <input type="url" id="wish-link" placeholder="Paste Shopee/Lazada Link" class="premium-input">
-                    <select id="wish-owner" class="premium-input font-bold text-pink-500">
-                        <option value="Phương">For Phương 👸</option>
-                        <option value="Sơn">For Sơn 🤵‍♂️</option>
-                    </select>
+                    <textarea id="wish-notes" placeholder="Notes: e.g., size M, black color, or any special details..." class="premium-input" rows="2"></textarea>
                     <button onclick="addWish()" id="add-wish-btn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg">Add to List</button>
                 </div>
             </div>
@@ -134,9 +153,22 @@
 
         <section id="settings" class="tab-content space-y-6">
             <div class="glass p-8 text-center space-y-4">
-                <img src="images.jpg" class="w-16 h-16 rounded-full object-cover mx-auto mb-2 shadow-md">
-                <h3 class="font-black text-slate-800">Love you</h3>
+                <div class="w-20 h-20 rounded-full shadow-lg overflow-hidden mx-auto">
+                    <img src="images.jpg" class="w-full h-full object-cover">
+                </div>
+                <h3 class="font-black text-slate-200">Love you</h3>
                 <p class="text-xs text-slate-400 px-4">Made with ❤️ for you</p>
+            </div>
+            
+            <div class="glass p-6 space-y-4">
+                <h3 class="text-xs font-black uppercase text-slate-300 tracking-widest">Our Secret Key 🔐</h3>
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                    <code id="couple-id-display" class="text-sm font-bold text-blue-300">Loading...</code>
+                    <button onclick="copyCoupleId()" class="bg-pink-400 hover:bg-pink-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-400 text-center">Share this key with your partner to sync 💕</p>
             </div>
         </section>
 
@@ -152,7 +184,13 @@
     <div id="log-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl">
             <h3 id="modal-title" class="text-xl font-black text-center text-slate-800">Add Spending</h3>
-            <select id="modal-amount" class="premium-input font-black text-lg text-blue-500"></select>
+            <div>
+                <p class="text-[9px] font-bold text-slate-600 mb-2">Amount (k)</p>
+                <div class="flex gap-2">
+                    <input type="number" id="modal-amount-input" placeholder="Type" min="0" max="10000" class="premium-input text-sm flex-1">
+                </div>
+                <select id="modal-amount" class="premium-input font-bold text-sm mt-2"></select>
+            </div>
             <div class="flex gap-3">
                 <button onclick="closeLogModal()" class="flex-1 py-4 bg-slate-50 rounded-2xl font-bold text-slate-400">Cancel</button>
                 <button id="modal-confirm" class="flex-2 py-4 bg-slate-900 text-white rounded-2xl font-bold px-4">Confirm</button>
@@ -162,7 +200,7 @@
 
     <nav class="fixed bottom-8 left-6 right-6 z-[100]">
         <div class="max-w-md mx-auto glass rounded-[2.5rem] shadow-2xl p-2 flex justify-around items-center border border-white">
-            <button onclick="showTab('dashboard')" class="nav-btn active" data-tab="dashboard"><i class="fa-solid fa-house-heart"></i></button>
+            <button onclick="showTab('dashboard')" class="nav-btn active" data-tab="dashboard"><i class="fa-solid fa-heart-pulse animate-pulse"></i></button>
             <button onclick="showTab('wishlist')" class="nav-btn" data-tab="wishlist"><i class="fa-solid fa-wand-sparkles"></i></button>
             <button onclick="showTab('history')" class="nav-btn" data-tab="history"><i class="fa-solid fa-clock-rotate-left"></i></button>
         </div>

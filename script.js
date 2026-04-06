@@ -89,15 +89,8 @@ function getMonthId() {
 
 function checkMonthlyReset() {
     const mid = getMonthId();
-    if (state.currentMonthId !== mid) {
-        state.currentMonthId = mid;
-        if (!state.months[mid]) {
-            state.months[mid] = { budget: 0, initial: 0, logs: [], spending: { Eating: 0, "Going Out": 0, Shopping: 0 } };
-            document.getElementById('current-month-name').innerText = new Date().toLocaleDateString('vi-VN', {month: 'long', year: 'numeric'});
-            document.getElementById('setup-overlay').classList.remove('hidden');
-            saveData();
-        }
-    }
+    // Only update ID, don't auto-create new month (manual setup via button)
+    state.currentMonthId = mid;
 }
 
 window.finishSetup = function() {
@@ -133,7 +126,17 @@ function updateUI() {
     const cur = state.months[getMonthId()];
     if (!cur) return;
 
-    document.getElementById('display-budget').innerText = `${cur.budget.toLocaleString()}k`;
+    const displayBudget = document.getElementById('display-budget');
+    displayBudget.innerText = `${cur.budget.toLocaleString()}k`;
+    
+    // Budget warning - if less than 20% remaining
+    const budgetPercent = cur.initial > 0 ? (cur.budget / cur.initial) * 100 : 0;
+    if (budgetPercent < 20 && budgetPercent > 0) {
+        displayBudget.parentElement.parentElement.classList.add('budget-warning');
+    } else {
+        displayBudget.parentElement.parentElement.classList.remove('budget-warning');
+    }
+    
     document.getElementById('total-spent').innerText = `${(cur.initial - cur.budget).toLocaleString()}k`;
     
     const now = new Date();
@@ -150,27 +153,44 @@ function updateUI() {
     renderWishlist();
     renderHistory();
     initChart();
+    displayCoupleId();
 }
 
 window.addWish = async function() {
     const itemInput = document.getElementById('wish-item');
-    const price = parseInt(document.getElementById('wish-price').value);
+    const priceInput = document.getElementById('wish-price-input');
+    const price = parseInt(priceInput.value) || 0;
     const link = document.getElementById('wish-link').value;
+    const notes = document.getElementById('wish-notes').value;
     const btn = document.getElementById('add-wish-btn');
 
+    if (price <= 0) {
+        alert("Please enter a valid price 💰");
+        return;
+    }
+
     btn.innerText = "💖 Making a Wish..."; btn.disabled = true;
-    let img = "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400";
+    let img = "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400"; // Fallback image
     let name = itemInput.value;
 
     if (link) {
         try {
-            const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(link)}`);
+            const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(link)}`, {
+                headers: { 'Accept': 'application/json' }
+            });
             const data = await res.json();
-            if (data.status === 'success') {
-                img = data.data.image?.url || img;
-                if (!name) name = data.data.title;
+            if (data.status === 'success' && data.data) {
+                // Try to get the best image available
+                img = data.data.image?.url || data.data.logo?.url || data.data.thumbnail?.url || img;
+                // Auto-fill name if not provided
+                if (!name || name.trim() === '') {
+                    name = data.data.title || data.data.description || "Surprise Gift";
+                }
+                console.log("✅ Preview fetched:", {name, img});
             }
-        } catch (e) {}
+        } catch (e) { 
+            console.warn("⚠️ Link preview API failed (will use placeholder):", e.message); 
+        }
     }
 
     state.wishlist.push({
@@ -179,13 +199,14 @@ window.addWish = async function() {
         price,
         priority: parseInt(document.getElementById('wish-priority').value),
         owner: document.getElementById('wish-owner').value,
-        link, img
+        link, img, notes
     });
     
     state.wishlist.sort((a, b) => a.priority - b.priority);
-    itemInput.value = ''; document.getElementById('wish-link').value = '';
+    itemInput.value = ''; priceInput.value = ''; document.getElementById('wish-link').value = ''; document.getElementById('wish-notes').value = '';
     btn.innerText = "Add to List"; btn.disabled = false;
     saveData();
+    showToast("✨ Wish added successfully!");
 }
 
 window.purchaseWish = function(id) {
@@ -204,6 +225,7 @@ window.purchaseWish = function(id) {
         state.wishlistBought.unshift({...item, boughtDate: new Date().toLocaleDateString()});
         state.wishlist.splice(idx, 1);
         saveData();
+        showToast(`🎁 You bought "${item.item}" for your love!`);
     }
 }
 
@@ -215,27 +237,55 @@ window.deleteWish = function(id) {
 }
 
 function renderWishlist() {
-    const list = (owner) => state.wishlist.filter(w => w.owner === owner).map(w => `
-        <div class="wish-card flex items-center justify-between mb-3 ${w.priority === 1 ? 'priority-1-card' : ''}">
-            <div class="flex items-center gap-4">
-                <div class="relative">
-                    <img src="${w.img}" class="w-14 h-14 rounded-2xl object-cover shadow-sm" onclick="window.open('${w.link}','_blank')">
-                    <span class="absolute -top-2 -left-2 priority-badge ${w.priority === 1 ? 'priority-1-badge' : 'bg-slate-100 text-slate-500'}">P${w.priority}</span>
+    const list = (owner) => {
+        const items = state.wishlist.filter(w => w.owner === owner);
+        if (items.length === 0) return '';
+        
+        let html = '';
+        let lastPriority = null;
+        
+        items.forEach(w => {
+            // Add separator when priority changes
+            if (lastPriority !== null && lastPriority !== w.priority) {
+                html += '<div class="border-t border-white/10 my-3"></div>';
+            }
+            lastPriority = w.priority;
+            
+            const priorityClass = w.priority === 1 ? 'priority-1-card' : w.priority === 2 ? 'priority-2-card' : 'priority-3-card';
+            const badgeClass = w.priority === 1 ? 'priority-1-badge' : w.priority === 2 ? 'priority-2-badge' : 'priority-3-badge';
+            
+            html += `
+                <div class="wish-card flex items-center justify-between mb-3 ${priorityClass}">
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="relative">
+                            <img src="${w.img}" class="w-14 h-14 rounded-2xl object-cover shadow-sm" onclick="window.open('${w.link}','_blank')">
+                            <span class="absolute -top-2 -left-2 priority-badge ${badgeClass}">P${w.priority}</span>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-xs font-bold text-white truncate w-32">${w.item}</h4>
+                            <p class="text-sm font-black text-pink-500">${w.price}k</p>
+                            ${w.notes ? `<p class="text-[9px] text-slate-300 truncate mt-1">📝 ${w.notes}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="purchaseWish(${w.id})" class="purchase-btn"><i class="fa-solid fa-check"></i></button>
+                        <button onclick="deleteWish(${w.id})" class="delete-btn"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    </div>
                 </div>
-                <div>
-                    <h4 class="text-xs font-bold text-slate-800 truncate w-32">${w.item}</h4>
-                    <p class="text-sm font-black text-pink-500">${w.price}k</p>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="purchaseWish(${w.id})" class="purchase-btn"><i class="fa-solid fa-check"></i></button>
-                <button onclick="deleteWish(${w.id})" class="delete-btn"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
-            </div>
-        </div>
-    `).join('');
+            `;
+        });
+        
+        return html;
+    };
+    
+    // Calculate totals
+    const phuongWishes = state.wishlist.filter(w => w.owner === 'Phương');
+    const sonWishes = state.wishlist.filter(w => w.owner === 'Sơn');
+    const phuongTotal = phuongWishes.reduce((sum, w) => sum + w.price, 0);
+    const sonTotal = sonWishes.reduce((sum, w) => sum + w.price, 0);
 
-    document.getElementById('wishlist-phuong').innerHTML = `<p class="ml-4 text-[10px] font-black uppercase text-pink-400 mb-3 tracking-widest">🌸 My Beautiful Phương</p>${list('Phương') || '<p class="text-center text-xs text-slate-300 pb-4">Make a wish, darling 💕</p>'}`;
-    document.getElementById('wishlist-son').innerHTML = `<p class="ml-4 text-[10px] font-black uppercase text-blue-400 mb-3 tracking-widest">🐻 My Handsome Sơn</p>${list('Sơn') || '<p class="text-center text-xs text-slate-300 pb-4">Dream big, my love ✨</p>'}`;
+    document.getElementById('wishlist-phuong').innerHTML = `<div class="ml-4 mb-3 flex justify-between items-center"><p class="text-[10px] font-black uppercase text-pink-400 tracking-widest">🌸 My Beautiful Phương</p><span class="text-[10px] font-black text-pink-300">${phuongTotal}k</span></div>${list('Phương') || '<p class="text-center text-xs text-slate-300 pb-4">Make a wish, darling 💕</p>'}`;
+    document.getElementById('wishlist-son').innerHTML = `<div class="ml-4 mb-3 flex justify-between items-center"><p class="text-[10px] font-black uppercase text-blue-400 tracking-widest">🐻 My Handsome Sơn</p><span class="text-[10px] font-black text-blue-300">${sonTotal}k</span></div>${list('Sơn') || '<p class="text-center text-xs text-slate-300 pb-4">Dream big, my love ✨</p>'}`;
     
     document.getElementById('wishlist-bought').innerHTML = (state.wishlistBought || []).slice(0, 10).map(w => `
         <div class="bg-white p-3 rounded-3xl text-center border border-slate-50">
@@ -253,7 +303,7 @@ function renderHistory() {
             <div class="glass p-6">
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-2">
-                        <h3 class="font-black text-slate-800">${mid}</h3>
+                        <h3 class="font-black text-white">${mid}</h3>
                         <button onclick="deleteMonth('${mid}')" class="text-slate-300 hover:text-red-400 transition-colors"><i class="fa-solid fa-trash text-xs"></i></button>
                     </div>
                     <p class="text-xs font-bold text-pink-500">Spent ${(m.initial - m.budget)}k</p>
@@ -316,8 +366,17 @@ window.editHistoryItem = function(mid, index) {
 window.openLogModal = function(cat) {
     document.getElementById('log-modal').classList.remove('hidden');
     document.getElementById('modal-title').innerText = `Spending on ${cat}`;
+    document.getElementById('modal-amount-input').value = '';
     document.getElementById('modal-confirm').onclick = () => {
-        const amt = parseInt(document.getElementById('modal-amount').value);
+        const typedAmt = parseInt(document.getElementById('modal-amount-input').value);
+        const selectedAmt = parseInt(document.getElementById('modal-amount').value);
+        const amt = typedAmt || selectedAmt;
+        
+        if (!amt || amt <= 0) {
+            alert("Please enter or select an amount 💰");
+            return;
+        }
+        
         const cur = state.months[getMonthId()];
         cur.budget -= amt;
         cur.spending[cat === 'Eating' ? 'Eating' : 'Going Out'] += amt;
@@ -328,14 +387,76 @@ window.openLogModal = function(cat) {
 
 window.closeLogModal = function() { document.getElementById('log-modal').classList.add('hidden'); }
 
-function populateRanges() {
-    const els = [document.getElementById('wish-price'), document.getElementById('modal-amount')];
-    els.forEach(el => {
-        if (!el) return;
-        el.innerHTML = "";
-        for(let i=0; i<=10000; i+=50) {
-            let opt = document.createElement('option'); opt.value = i; opt.innerText = i + "k"; el.appendChild(opt);
+function populatePriceRanges() {
+    // Populate wishlist price range dropdown (50k increments)
+    const wishPriceRange = document.getElementById('wish-price-range');
+    if (wishPriceRange) {
+        wishPriceRange.innerHTML = '<option value="">Quick select...</option>';
+        for (let i = 50; i <= 10000; i += 50) {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.innerText = i + 'k';
+            wishPriceRange.appendChild(opt);
         }
+        // Auto-fill input when dropdown is selected
+        wishPriceRange.addEventListener('change', function() {
+            if (this.value) {
+                document.getElementById('wish-price-input').value = this.value;
+                this.value = '';
+            }
+        });
+    }
+    
+    // Populate modal amount dropdown (50k increments)
+    const modalAmount = document.getElementById('modal-amount');
+    if (modalAmount) {
+        modalAmount.innerHTML = '<option value="">Quick select...</option>';
+        for (let i = 50; i <= 10000; i += 50) {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.innerText = i + 'k';
+            modalAmount.appendChild(opt);
+        }
+        // Auto-fill input when dropdown is selected
+        modalAmount.addEventListener('change', function() {
+            if (this.value) {
+                document.getElementById('modal-amount-input').value = this.value;
+                this.value = '';
+            }
+        });
+    }
+}
+
+function showToast(message) {
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) existingToast.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function displayCoupleId() {
+    const coupleIdDisplay = document.getElementById('couple-id-display');
+    if (coupleIdDisplay) {
+        const key = localStorage.getItem('couple_sync_key');
+        coupleIdDisplay.innerText = key || 'Loading...';
+    }
+}
+
+window.copyCoupleId = function() {
+    const key = localStorage.getItem('couple_sync_key');
+    if (!key) {
+        showToast('No key found 💔');
+        return;
+    }
+    navigator.clipboard.writeText(key).then(() => {
+        showToast('✅ Key copied to clipboard!');
+    }).catch(() => {
+        showToast('Failed to copy 😅');
     });
 }
 
@@ -385,4 +506,4 @@ function createHeart() {
 setInterval(createHeart, 2500);
 
 // Start Up
-populateRanges();
+populatePriceRanges();
